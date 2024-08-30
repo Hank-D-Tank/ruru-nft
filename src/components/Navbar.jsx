@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Link, useLocation } from 'react-router-dom';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useWalletModal } from '@solana/wallet-adapter-react-ui';
 import BtnVideo from './buttons/BtnVideo';
 import { useWallet } from '@solana/wallet-adapter-react';
@@ -10,7 +10,7 @@ const Navbar = () => {
     const { setVisible } = useWalletModal();
     const { connected, publicKey } = useWallet();
     const [navbarOpen, setNavbarOpen] = useState(false);
-    const location = useLocation();
+    const navigate = useNavigate();
 
     const handleConnectWallet = () => {
         setVisible(true);
@@ -38,7 +38,7 @@ const Navbar = () => {
         if (navbarOpen) {
             setNavbarOpen(false);
         }
-    }, [location]);
+    }, [navigate]);
 
     return (
         <>
