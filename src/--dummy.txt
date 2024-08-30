@@ -1,0 +1,544 @@
+// NftDetail.js
+import React, { useEffect, useState } from 'react';
+import { useWallet } from '@solana/wallet-adapter-react';
+import {
+    Connection, clusterApiUrl, PublicKey, SystemProgram, Transaction, LAMPORTS_PER_SOL, sendAndConfirmTransaction, sendAndConfirmRawTransaction, SendTransactionError
+} from '@solana/web3.js';
+import { Metaplex, walletAdapterIdentity, token} from '@metaplex-foundation/js';
+/* import { createMint, createAccount, mintTo, TOKEN_PROGRAM_ID } from '@solana/spl-token'; */
+import { IoBagHandleSharp } from 'react-icons/io5';
+import { useParams } from 'react-router-dom';
+import nacl from 'tweetnacl';
+
+
+const NftDetail = () => {
+    const { id } = useParams();
+    const [nft, setNft] = useState(null);
+    const [loading, setLoading] = useState(true);
+    const [error, setError] = useState(null);
+    const { publicKey, signTransaction } = useWallet();
+    const wallet = useWallet();
+
+    const formatDate = (dateString) => {
+        const date = new Date(dateString);
+        const day = date.getDate();
+        const month = date.toLocaleString('default', { month: 'short' });
+        const year = date.getFullYear();
+
+        const daySuffix = (day) => {
+            if (day > 3 && day < 21) return `${day}th`;
+            switch (day % 10) {
+                case 1: return `${day}st`;
+                case 2: return `${day}nd`;
+                case 3: return `${day}rd`;
+                default: return `${day}th`;
+            }
+        };
+
+        return `${daySuffix(day)} ${month}, ${year}`;
+    };
+
+    const handleBuy = async (nft) => {
+        if (!wallet.connected || !publicKey || !signTransaction) {
+            console.log("Wallet not connected");
+            return;
+        }
+    
+        if (!nft || !nft.mintAddress || !nft.currentOwner || !nft.price) {
+            console.log("Invalid NFT data");
+            return;
+        }
+    
+        try {
+            const connection = new Connection(clusterApiUrl('devnet'), 'confirmed');
+            const metaplex = Metaplex.make(connection).use(walletAdapterIdentity(wallet));
+            const mintAddress = new PublicKey(nft.mintAddress);
+            const currentOwner = new PublicKey(nft.currentOwner);
+            const nftToTransfer = await metaplex.nfts().findByMint({ mintAddress });
+            console.log("NFT data:", nftToTransfer);
+    
+            if (!nftToTransfer) {
+                throw new Error("NFT not found");
+            }
+    
+            const { blockhash } = await connection.getLatestBlockhash();
+            const transaction = new Transaction({
+                recentBlockhash: blockhash,
+                feePayer: publicKey
+            });
+    
+            const transferInstruction = metaplex.nfts().builders().transfer({
+                nftOrSft: nftToTransfer,
+                fromOwner: currentOwner,
+                toOwner: publicKey,
+                amount: token(1),
+                authority: currentOwner
+            }).getInstructions()[0];
+
+    
+            const solTransferInstruction = SystemProgram.transfer({
+                fromPubkey: publicKey,
+                toPubkey: currentOwner,
+                lamports: nft.price * LAMPORTS_PER_SOL
+            });
+    
+            transaction.add(solTransferInstruction);
+            transaction.add(transferInstruction);
+
+            console.log(transaction);
+            
+            const signedTransaction = await signTransaction(transaction);
+            const signature = await sendAndConfirmTransaction(connection, signedTransaction);
+            console.log(`Transaction successful with signature: ${signature}`);
+    
+            // Update the backend with the new owner
+            await fetch('http://localhost:5000/update', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ id: nft.$id, newOwner: publicKey.toString() }),
+            });
+    
+        } catch (error) {
+            console.error("Transaction failed", error);
+            if (error instanceof Error) {
+                console.error("Error message:", error.message);
+                console.error("Stack trace:", error.stack);
+            }
+        }
+    };
+    
+    
+    
+    
+
+    useEffect(() => {
+        const fetchNftDetails = async () => {
+            try {
+                const response = await fetch('http://localhost:5000/fetchSingle', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ id }),
+                });
+
+                if (!response.ok) {
+                    throw new Error('Failed to fetch NFT details');
+                }
+
+                const data = await response.json();
+                setNft(data.data);
+            } catch (err) {
+                setError(err.message);
+            } finally {
+                setLoading(false);
+            }
+        };
+
+        fetchNftDetails();
+    }, [id]);
+
+    if (loading) return <p>Loading...</p>;
+    if (error) return <p>Error: {error}</p>;
+
+    return (
+        <div className="page nft-details container">
+            <div className="nft-details-bg row" style={{ background: `url(${nft.image}) no-repeat` }}>
+                <div className="col-lg-6 nft-image">
+                    <img src={`${nft.image}`} alt={nft.title} />
+                </div>
+                <div className="col-lg-6 nft-info">
+                    <h2>{nft.title}</h2>
+                    <div className="creator">
+                        By <span>{nft.author}</span>
+                    </div>
+                    <p>{nft.description}</p>
+                    <button className='btn btn-white' onClick={() => {
+                        nft && handleBuy(nft);
+                    }}>
+                        Buy Now for <span>{nft.price} SOL</span> <IoBagHandleSharp />
+                    </button>
+                    <p className='date'>{formatDate(nft.$createdAt)}</p>
+                </div>
+            </div>
+        </div>
+    );
+};
+
+export default NftDetail;
+
+
+
+
+
+
+
+
+v2
+
+import React, { useEffect, useState } from 'react';
+import { useWallet } from '@solana/wallet-adapter-react';
+import {
+    Connection, clusterApiUrl, PublicKey, SystemProgram, Transaction, LAMPORTS_PER_SOL, sendAndConfirmTransaction
+} from '@solana/web3.js';
+import { Metaplex, walletAdapterIdentity, token } from '@metaplex-foundation/js';
+import { IoBagHandleSharp } from 'react-icons/io5';
+import { useParams } from 'react-router-dom';
+
+const NftDetail = () => {
+    const { id } = useParams();
+    const [nft, setNft] = useState(null);
+    const [loading, setLoading] = useState(true);
+    const [error, setError] = useState(null);
+    const { publicKey } = useWallet();
+    const wallet = useWallet();
+
+    const formatDate = (dateString) => {
+        const date = new Date(dateString);
+        const day = date.getDate();
+        const month = date.toLocaleString('default', { month: 'short' });
+        const year = date.getFullYear();
+
+        const daySuffix = (day) => {
+            if (day > 3 && day < 21) return `${day}th`;
+            switch (day % 10) {
+                case 1: return `${day}st`;
+                case 2: return `${day}nd`;
+                case 3: return `${day}rd`;
+                default: return `${day}th`;
+            }
+        };
+
+        return `${daySuffix(day)} ${month}, ${year}`;
+    };
+
+    const handleBuy = async (nft) => {
+        if (!wallet.connected || !publicKey) {
+            console.log("Wallet not connected");
+            return;
+        }
+    
+        if (!nft || !nft.mintAddress || !nft.currentOwner || !nft.price) {
+            console.log("Invalid NFT data");
+            return;
+        }
+    
+        try {
+            const connection = new Connection(clusterApiUrl('devnet'), 'confirmed');
+            const metaplex = Metaplex.make(connection).use(walletAdapterIdentity(wallet));
+            const mintAddress = new PublicKey(nft.mintAddress);
+            const currentOwner = new PublicKey(nft.currentOwner);
+            const nftToTransfer = await metaplex.nfts().findByMint({ mintAddress });
+            if (!nftToTransfer) {
+                throw new Error("NFT not found");
+            }
+    
+            const { blockhash } = await connection.getLatestBlockhash();
+            const transaction = new Transaction({
+                recentBlockhash: blockhash,
+                feePayer: publicKey
+            });
+    
+            // 1. Transfer SOL from the buyer to the seller
+            const solTransferInstruction = SystemProgram.transfer({
+                fromPubkey: publicKey,
+                toPubkey: currentOwner,
+                lamports: nft.price * LAMPORTS_PER_SOL
+            });
+    
+            // 2. Transfer the NFT from the seller to the buyer
+            const transferInstruction = metaplex.nfts().builders().transfer({
+                nftOrSft: nftToTransfer,
+                fromOwner: currentOwner,
+                toOwner: publicKey,
+                amount: token(1),
+                authority: currentOwner
+            }).getInstructions()[0];
+    
+            // Add the instructions to the transaction
+            transaction.add(solTransferInstruction);
+            transaction.add(transferInstruction);
+    
+            // Use wallet.sendTransaction to sign and send the transaction
+            const signature = await wallet.sendTransaction(transaction, connection);
+            await connection.confirmTransaction(signature, 'confirmed');
+    
+            console.log(`Transaction successful with signature: ${signature}`);
+    
+            // Update the backend with the new owner
+            await fetch('http://localhost:5000/update', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ id: nft.$id, newOwner: publicKey.toString() }),
+            });
+    
+        } catch (error) {
+            console.error("Transaction failed", error);
+        }
+    };
+    
+
+    useEffect(() => {
+        const fetchNftDetails = async () => {
+            try {
+                const response = await fetch('http://localhost:5000/fetchSingle', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ id }),
+                });
+
+                if (!response.ok) {
+                    throw new Error('Failed to fetch NFT details');
+                }
+
+                const data = await response.json();
+                setNft(data.data);
+            } catch (err) {
+                setError(err.message);
+            } finally {
+                setLoading(false);
+            }
+        };
+
+        fetchNftDetails();
+    }, [id]);
+
+    if (loading) return <p>Loading...</p>;
+    if (error) return <p>Error: {error}</p>;
+
+    return (
+        <div className="page nft-details container">
+            <div className="nft-details-bg row" style={{ background: `url(${nft.image}) no-repeat` }}>
+                <div className="col-lg-6 nft-image">
+                    <img src={`${nft.image}`} alt={nft.title} />
+                </div>
+                <div className="col-lg-6 nft-info">
+                    <h2>{nft.title}</h2>
+                    <div className="creator">
+                        By <span>{nft.author}</span>
+                    </div>
+                    <p>{nft.description}</p>
+                    <button className='btn btn-white' onClick={() => {
+                        nft && handleBuy(nft);
+                    }}>
+                        Buy Now for <span>{nft.price} SOL</span> <IoBagHandleSharp />
+                    </button>
+                    <p className='date'>{formatDate(nft.$createdAt)}</p>
+                </div>
+            </div>
+        </div>
+    );
+};
+
+export default NftDetail;
+
+import React, { useEffect, useState } from 'react';
+import { useWallet, useConnection } from '@solana/wallet-adapter-react';
+import {
+    Connection, clusterApiUrl, PublicKey, SystemProgram, Transaction, LAMPORTS_PER_SOL, sendAndConfirmTransaction
+} from '@solana/web3.js';
+import { Metaplex, walletAdapterIdentity, token } from '@metaplex-foundation/js';
+import {
+    TOKEN_PROGRAM_ID,
+    getAssociatedTokenAddress,
+    getOrCreateAssociatedTokenAccount,
+    createAssociatedTokenAccountInstruction,
+    createTransferCheckedInstruction,
+    createAssociatedTokenAccount,
+    createMint,
+} from '@solana/spl-token';
+import { IoBagHandleSharp } from 'react-icons/io5';
+import { useParams } from 'react-router-dom';
+
+const NftDetail = () => {
+    const { id } = useParams();
+    const [nft, setNft] = useState(null);
+    const [loading, setLoading] = useState(true);
+    const [error, setError] = useState(null);
+    const { publicKey, signTransaction } = useWallet();
+    const wallet = useWallet();
+    const { connection } = useConnection();
+
+    const formatDate = (dateString) => {
+        const date = new Date(dateString);
+        const day = date.getDate();
+        const month = date.toLocaleString('default', { month: 'short' });
+        const year = date.getFullYear();
+
+        const daySuffix = (day) => {
+            if (day > 3 && day < 21) return `${day}th`;
+            switch (day % 10) {
+                case 1: return `${day}st`;
+                case 2: return `${day}nd`;
+                case 3: return `${day}rd`;
+                default: return `${day}th`;
+            }
+        };
+
+        return `${daySuffix(day)} ${month}, ${year}`;
+    };
+
+
+    const handleBuy = async (nft) => {
+        try {
+            if (!wallet.publicKey) {
+                throw new Error("Wallet Not Connected");
+            }
+
+            const buyerPublicKey = wallet.publicKey;
+            const nftMintPublicKey = new PublicKey(nft.mintAddress);
+            const sellerPublicKey = new PublicKey(nft.currentOwner);
+            const solAmount = nft.price * LAMPORTS_PER_SOL;
+
+            console.log('Buyer:', buyerPublicKey.toBase58());
+            console.log('NFT Mint:', nftMintPublicKey.toBase58());
+            console.log('Seller:', sellerPublicKey.toBase58());
+            console.log('Amount:', solAmount);
+
+            // Check balance
+            const balance = await connection.getBalance(buyerPublicKey);
+            const estimatedFee = 10000; 
+            if (balance < solAmount + estimatedFee) {
+                throw new Error("Insufficient funds to complete the transaction");
+            }
+            const sellerTokenAccount = await getAssociatedTokenAddress(
+                nftMintPublicKey,
+                sellerPublicKey
+            );
+
+            const buyerTokenAccount = await getAssociatedTokenAddress(
+                nftMintPublicKey,
+                buyerPublicKey
+            );
+
+            console.log('Seller Token Account:', sellerTokenAccount.toBase58());
+            console.log('Buyer Token Account:', buyerTokenAccount.toBase58());
+
+            const transaction = new Transaction();
+
+            const accountInfo = await connection.getAccountInfo(buyerTokenAccount);
+            if (!accountInfo) {
+                console.log('Creating buyer token account');
+                transaction.add(
+                    createAssociatedTokenAccountInstruction(
+                        buyerPublicKey,
+                        buyerTokenAccount,
+                        buyerPublicKey,
+                        nftMintPublicKey
+                    )
+                );
+            }
+
+            transaction.add(
+                SystemProgram.transfer({
+                    fromPubkey: buyerPublicKey,
+                    toPubkey: sellerPublicKey,
+                    lamports: solAmount,
+                })
+            );
+
+            transaction.add(
+                createTransferCheckedInstruction(
+                    sellerTokenAccount,
+                    nftMintPublicKey,
+                    buyerTokenAccount,
+                    sellerPublicKey,
+                    1,
+                    0,
+                    [],
+                    TOKEN_PROGRAM_ID
+                )
+            );
+
+            console.log(transaction)
+
+            let blockhash = await connection.getLatestBlockhash('finalized');
+            transaction.recentBlockhash = blockhash.blockhash;
+            transaction.feePayer = buyerPublicKey;
+
+            console.log('Transaction created, sending...');
+
+            try {
+                const signature = await wallet.sendTransaction(transaction, connection);
+                console.log('Transaction sent. Signature:', signature);
+
+                // Wait for confirmation
+                const confirmation = await connection.confirmTransaction(signature, 'confirmed');
+                console.log('Transaction confirmed:', confirmation);
+            } catch (sendError) {
+                console.error('Error sending transaction:', sendError);
+                console.error('Detailed error:', JSON.stringify(sendError, null, 2));
+                if (sendError.logs) {
+                    console.error('Transaction logs:', sendError.logs);
+                }
+                throw sendError;
+            }
+
+        } catch (error) {
+            console.error('Transaction failed:', error);
+            console.error('Detailed error:', JSON.stringify(error, null, 2));
+            if (error.message) {
+                console.error('Error message:', error.message);
+            }
+        }
+    };
+
+
+
+    useEffect(() => {
+        const fetchNftDetails = async () => {
+            try {
+                const response = await fetch('http://localhost:5000/fetchSingle', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ id }),
+                });
+
+                if (!response.ok) {
+                    throw new Error('Failed to fetch NFT details');
+                }
+
+                const data = await response.json();
+                setNft(data.data);
+            } catch (err) {
+                setError(err.message);
+            } finally {
+                setLoading(false);
+            }
+        };
+
+        fetchNftDetails();
+    }, [id]);
+
+    if (loading) return <p>Loading...</p>;
+    if (error) return <p>Error: {error}</p>;
+
+    return (
+        <div className="page nft-details container">
+            <div className="nft-details-bg row" style={{ background: `url(${nft.image}) no-repeat` }}>
+                <div className="col-lg-6 nft-image">
+                    <img src={`${nft.image}`} alt={nft.title} />
+                </div>
+                <div className="col-lg-6 nft-info">
+                    <h2>{nft.title}</h2>
+                    <div className="creator">
+                        By <span>{nft.author}</span>
+                    </div>
+                    <p>{nft.description}</p>
+                    <button className='btn btn-white' onClick={() => {
+                        nft && handleBuy(nft);
+                    }}>
+                        Buy Now for <span>{nft.price} SOL</span> <IoBagHandleSharp />
+                    </button>
+                    <p className='date'>{formatDate(nft.$createdAt)}</p>
+                </div>
+            </div>
+        </div>
+    );
+};
+
+export default NftDetail;
