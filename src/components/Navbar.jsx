@@ -10,7 +10,7 @@ const Navbar = () => {
     const { setVisible } = useWalletModal();
     const { connected, publicKey } = useWallet();
     const [navbarOpen, setNavbarOpen] = useState(false);
-    const navigate = useNavigate();
+    const location = useLocation();
 
     const handleConnectWallet = () => {
         setVisible(true);
@@ -38,7 +38,7 @@ const Navbar = () => {
         if (navbarOpen) {
             setNavbarOpen(false);
         }
-    }, [navigate]);
+    }, [location]);
 
     return (
         <>
@@ -93,6 +93,7 @@ const Navbar = () => {
                         <FaWallet /> <span>{shortenPublicKey(publicKey, 5)}</span>
                     </div>}
                 </div>
+                <BtnVideo onClick={handleConnectWallet} style={{width: "fit-content", marginLeft: "10rem", marginTop: "2rem"}}/>
             </div>
         </>
     );

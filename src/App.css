@@ -1119,4 +1119,47 @@ form {
   }
 }
 
+
+@media (max-width: 420px){
+  .home .home-hero .heading{
+    font-size: 3.5rem;
+  }
+  .home .home-hero p{
+    width: 100%;
+  }
+  .btn-main{
+    font-size: 1.5rem;
+  }
+  .section-heading{
+    font-size: 2.4rem;
+  }
+  .btn-primary{
+    font-size: 1.2rem;
+  }
+  .section{
+    padding-inline: 1rem;
+  }
+  .step .step-title{
+    font-size: 2.5rem;
+  }
+  body{
+    font-size: 1.3rem;
+  }
+  .navbar.navbar-mobile{
+    left: 1rem;
+    right: 1rem;
+    padding-inline: 2rem;
+  }
+  .home .right .sub-heading{
+    display: none;
+  }
+  .page.upload h2{
+    font-size: 1.8rem;
+  }
+  .navbar-content .nav-items{
+    padding-left: 6rem;
+    padding-right: 3rem;
+  }
+}
+
 /* Media Query */

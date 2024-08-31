@@ -31,7 +31,7 @@ const Home = () => {
             }
         };
 
-        return `${daySuffix(day)} ${month}, ${year}`;
+        return `${daySuffix(day)} ${month}`;
     };
 
     useEffect(() => {
