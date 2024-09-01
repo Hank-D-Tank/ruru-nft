@@ -5,15 +5,25 @@ import BtnVideo from './buttons/BtnVideo';
 import { useWallet } from '@solana/wallet-adapter-react';
 import { FaWallet } from "react-icons/fa";
 import { PiApproximateEqualsBold } from 'react-icons/pi';
+import connectBtnBg from '../assets/connect-bg.mp4';
+import disconnectBtnBg from '../assets/disconnect-bg.mp4';
+import { ToastContainer, toast } from 'react-toastify';
+import 'react-toastify/dist/ReactToastify.css';
 
 const Navbar = () => {
     const { setVisible } = useWalletModal();
-    const { connected, publicKey } = useWallet();
+    const { connected, publicKey, disconnect } = useWallet();
     const [navbarOpen, setNavbarOpen] = useState(false);
+    const [prevConnected, setPrevConnected] = useState(connected);
     const location = useLocation();
+    const navigate = useNavigate();
 
     const handleConnectWallet = () => {
-        setVisible(true);
+        if (connected) {
+            disconnect();
+        } else {
+            setVisible(true);
+        }
     };
 
     const shortenPublicKey = (key, step) => {
@@ -40,6 +50,32 @@ const Navbar = () => {
         }
     }, [location]);
 
+    useEffect(() => {
+        if (prevConnected && !connected) {
+            toast.info("Your wallet is disconnected!", {
+                className: "custom-toast",
+                position: "top-right",
+                autoClose: 5000,
+            });
+            if (location.pathname.startsWith('/myNFTs')) {
+                navigate('/');
+            }
+        }
+        setPrevConnected(connected);
+    }, [connected, prevConnected, location, navigate]);
+
+    const handleMyNFTsClick = () => {
+        if (!connected) {
+            toast.error("Please connect your wallet to view your NFTs.", {
+                className: "custom-toast",
+                position: "top-right",
+                autoClose: 5000,
+            });
+        } else {
+            navigate(`/myNFTs/${publicKey}`);
+        }
+    };
+
     return (
         <>
             <div className="navbar navbar-pc">
@@ -54,14 +90,17 @@ const Navbar = () => {
                     <div className="nav-item">
                         <Link to={"/upload-nft"}>Upload NFTs</Link>
                     </div>
-                    <div className="nav-item">
-                        <Link to={`/myNFTs/${publicKey}`}>My NFTs</Link>
+                    <div className="nav-item" onClick={handleMyNFTsClick}>
+                        My NFTs
                     </div>
                     {connected && <div className="nav-item wallet-info">
                         <FaWallet /> <span>{shortenPublicKey(publicKey, 3)}</span>
                     </div>}
                 </div>
-                <BtnVideo onClick={handleConnectWallet} />
+                <BtnVideo 
+                    onClick={handleConnectWallet} 
+                    btnBg={connected ? disconnectBtnBg : connectBtnBg} 
+                />
             </div>
             <div className="navbar navbar-mobile">
                 <div className="logo">Ruru<span>NFT</span>.</div>
@@ -87,14 +126,23 @@ const Navbar = () => {
                     </div>
                     <div className="nav-item">
                         <span>My NFTs</span>
-                        <Link to={`/myNFTs/${publicKey}`}>My NFTs</Link>
+                        <div onClick={handleMyNFTsClick}>My NFTs</div>
                     </div>
                     {connected && <div className="nav-item wallet-info">
                         <FaWallet /> <span>{shortenPublicKey(publicKey, 5)}</span>
                     </div>}
                 </div>
-                <BtnVideo onClick={handleConnectWallet} style={{width: "fit-content", marginLeft: "10rem", marginTop: "2rem"}}/>
+                {connected ? <BtnVideo 
+                    onClick={handleConnectWallet} 
+                    btnBg={disconnectBtnBg} 
+                    style={{width: "fit-content", marginLeft: "10rem", marginTop: "2rem"}} 
+                /> : <BtnVideo 
+                onClick={handleConnectWallet} 
+                btnBg={connectBtnBg} 
+                style={{width: "fit-content", marginLeft: "10rem", marginTop: "2rem"}} 
+            />}
             </div>
+            <ToastContainer />
         </>
     );
 };

@@ -2,6 +2,8 @@ import React, { useEffect, useState } from 'react';
 import { useWallet, useConnection } from '@solana/wallet-adapter-react';
 import { IoBagHandleSharp } from 'react-icons/io5';
 import { useParams } from 'react-router-dom';
+import { useGSAP } from '@gsap/react';
+import gsap from 'gsap';
 
 const NftDetail = () => {
     const { id } = useParams();
@@ -30,6 +32,28 @@ const NftDetail = () => {
 
         return `${daySuffix(day)} ${month}, ${year}`;
     };
+
+    useGSAP(()=>{
+        if(!loading){
+            gsap.from(".nft-details-bg .nft-image img", {
+                x: -50,
+                opacity: 0,
+                duration: 1
+            })
+            gsap.from(".nft-info h2, .nft-info .creator", {
+                x: 50,
+                opacity: 0,
+                stagger: 0.5,
+                ease: 'power1.in'
+            })
+            gsap.from("p, button, .date", {
+                y: 10,
+                opacity: 0,
+                stagger: 0.5,
+                ease: 'power1.in'
+            })
+        }
+    }, [loading])
 
     /* const handleBuy = async (nft) => {
         // Your existing handleBuy code

@@ -8,11 +8,13 @@ import Upload from './components/routes/Upload.jsx';
 import Explore from './components/routes/Explore.jsx';
 import NftDetail from './components/routes/NftDetail.jsx';
 import MyNFTs from './components/routes/MyNFTs.jsx';
+import Error from './components/Error.jsx';
 
 const router = createBrowserRouter([
     {
         path: "/",
         element: <App />,
+        errorElement: <Error />,
         children: [
             {
                 path: "/",

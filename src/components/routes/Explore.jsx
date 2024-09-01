@@ -1,12 +1,18 @@
-import React, { useEffect, useState } from 'react'
+import React, { useEffect, useState, useRef } from 'react'
 import NftGrid from '../cards/NftGrid';
 import BtnPrimary from '../buttons/BtnPrimary';
 import { BsStars } from 'react-icons/bs';
+import gsap from 'gsap';
+import { useGSAP } from '@gsap/react';
+import { ScrollTrigger } from 'gsap/ScrollTrigger';
+
+gsap.registerPlugin(ScrollTrigger);
 
 const Explore = () => {
     const [nfts, setNfts] = useState([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
+    const nftRefs = useRef([]);
 
     useEffect(() => {
         const fetchNFTs = async () => {
@@ -27,7 +33,33 @@ const Explore = () => {
         fetchNFTs();
     }, []);
 
-    console.log(nfts)
+    useGSAP(() => {
+        if (!loading) {
+            gsap.from(".home-feature .section-header", {
+                y: 50,
+                opacity: 0,
+                duration: 1,
+                scrollTrigger: {
+                    trigger: '.home-feature',
+                    start: 'top 80%',
+                    end: 'top 20%',
+                }
+            });
+
+            nftRefs.current.forEach((ref, index) => {
+                gsap.from(ref, {
+                    y: 50,
+                    opacity: 0,
+                    duration: 1,
+                    scrollTrigger: {
+                        trigger: ref,
+                        start: 'top bottom-=100',
+                        end: 'bottom top+=100',
+                    }
+                });
+            });
+        }
+    }, [loading]);
 
     const formatDate = (dateString) => {
         const date = new Date(dateString);
@@ -46,7 +78,7 @@ const Explore = () => {
         };
       
         return `${daySuffix(day)} ${month}`;
-      }
+    }
 
     return (
         <>
@@ -57,12 +89,10 @@ const Explore = () => {
                         <div className="section-heading">
                             ALL NFTs
                         </div>
-
-                        {/* <BtnPrimary>See All <BsStars /> </BtnPrimary> */}
                     </div>
 
                     {Object.values(nfts).map((nft, index) => (
-                        <div className="col-xl-3 col-lg-4 col-md-6" key={index}>
+                        <div className="col-xl-3 col-lg-4 col-md-6" key={index} ref={el => nftRefs.current[index] = el}>
                             <NftGrid
                                 nftPath={nft.image}
                                 nftName={nft.title}

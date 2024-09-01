@@ -1,8 +1,12 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useParams } from 'react-router-dom';
 import NftGrid from '../cards/NftGrid';
 import { PiEmptyBold } from "react-icons/pi";
+import gsap from 'gsap';
+import { useGSAP } from '@gsap/react';
+import { ScrollTrigger } from 'gsap/ScrollTrigger';
 
+gsap.registerPlugin(ScrollTrigger);
 
 const MyNFTs = () => {
   const { publicKey } = useParams();
@@ -10,6 +14,8 @@ const MyNFTs = () => {
   const [isEmpty, setIsEmpty] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const nftRefs = useRef([]);
+  const emptyTextRef = useRef(null);
 
   useEffect(() => {
     const fetchMyNFTs = async () => {
@@ -28,7 +34,7 @@ const MyNFTs = () => {
 
         const data = await response.json();
         setNfts(data.data || []);
-        if(data.message == "Empty"){
+        if(data.message === "Empty"){
             setIsEmpty(true);
         }
       } catch (error) {
@@ -41,6 +47,43 @@ const MyNFTs = () => {
 
     fetchMyNFTs();
   }, [publicKey]);
+
+  useGSAP(() => {
+    if (!loading) {
+      gsap.from(".home-feature .section-header", {
+        y: 50,
+        opacity: 0,
+        duration: 1,
+        scrollTrigger: {
+          trigger: '.home-feature',
+          start: 'top 80%',
+          end: 'top 20%',
+        }
+      });
+
+      if (!isEmpty) {
+        nftRefs.current.forEach((ref, index) => {
+          gsap.from(ref, {
+            y: 50,
+            opacity: 0,
+            duration: 1,
+            scrollTrigger: {
+              trigger: ref,
+              start: 'top bottom-=100',
+              end: 'bottom top+=100',
+            }
+          });
+        });
+      } else if (emptyTextRef.current) {
+        gsap.from(emptyTextRef.current, {
+          y: 50,
+          opacity: 0,
+          duration: 1,
+          ease: "power3.out",
+        });
+      }
+    }
+  }, [loading, isEmpty]);
 
   const formatDate = (dateString) => {
     const date = new Date(dateString);
@@ -66,28 +109,32 @@ const MyNFTs = () => {
       <div className={loading ? "page explore container d-none" : "page explore container"}>
         {error && <div className="error-message">Error: {error}</div>}
 
-        {isEmpty ? <div className="empty">
+        {isEmpty ? (
+          <div className="empty" ref={emptyTextRef}>
             <PiEmptyBold /> <span>No NFTs <small>Created</small> Here</span>
-        </div> : <div className="row section home-feature">
-          <div className="section-header col-12">
-            <div className="section-heading">
-              My NFTs
-            </div>
           </div>
-
-          {Object.values(nfts).map((nft, index) => (
-            <div className="col-xl-3 col-lg-4 col-md-6" key={index}>
-              <NftGrid
-                nftPath={nft.image}
-                nftName={nft.title}
-                nftOwner={nft.author}
-                nftUploadTime={formatDate(nft.$createdAt)}
-                nftPrice={nft.price + " SOL"}
-                nft={nft}
-              />
+        ) : (
+          <div className="row section home-feature">
+            <div className="section-header col-12">
+              <div className="section-heading">
+                My NFTs
+              </div>
             </div>
-          ))}
-        </div>}
+
+            {Object.values(nfts).map((nft, index) => (
+              <div className="col-xl-3 col-lg-4 col-md-6" key={index} ref={el => nftRefs.current[index] = el}>
+                <NftGrid
+                  nftPath={nft.image}
+                  nftName={nft.title}
+                  nftOwner={nft.author}
+                  nftUploadTime={formatDate(nft.$createdAt)}
+                  nftPrice={nft.price + " SOL"}
+                  nft={nft}
+                />
+              </div>
+            ))}
+          </div>
+        )}
       </div>
     </>
   );

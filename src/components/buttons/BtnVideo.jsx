@@ -1,7 +1,6 @@
 import React from 'react'
-import btnBg from '../../assets/btn-bg.mp4'
 
-const BtnVideo = ({onClick, style}) => {
+const BtnVideo = ({onClick, style, btnBg}) => {
     return (
         <button className='btn btn-video' onClick={onClick} style={style}>
             <video src={btnBg} loop autoPlay muted></video>

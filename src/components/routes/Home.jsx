@@ -9,11 +9,15 @@ import { IoCloudUploadOutline, IoImageOutline } from 'react-icons/io5';
 import { SiHiveBlockchain } from 'react-icons/si';
 import { RiExchangeDollarFill } from 'react-icons/ri';
 import { GiMagnifyingGlass } from 'react-icons/gi';
+import { useGSAP } from '@gsap/react';
+import gsap from 'gsap';
+import { ScrollTrigger } from 'gsap/ScrollTrigger'
 
 const Home = () => {
     const [nfts, setNfts] = useState(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
+    gsap.registerPlugin(ScrollTrigger);
 
     const formatDate = (dateString) => {
         const date = new Date(dateString);
@@ -54,6 +58,114 @@ const Home = () => {
 
         fetchNFTs();
     }, []);
+
+    useGSAP(()=>{
+        if(!loading){
+            gsap.from(".home-hero .left .heading", {
+                y: "50",
+                opacity: 0,
+                duration: 1,
+            });
+            gsap.from(".home-feature .section-header", {
+                y: 50,
+                opacity: 0,
+                duration: 1,
+                delay: 1,
+                scrollTrigger: {
+                    trigger: '.home-feature',
+                    start: 'top 80%',
+                    end: 'top 20%',
+                }
+            });
+            gsap.from(".home-hero .right .sub-heading", {
+                y: 30,
+                opacity: 0,
+                duration: 1,
+                delay: 0.5, 
+            });
+
+            gsap.from(".home-hero .right .btn-main", {
+                y: 30,
+                opacity: 0,
+                duration: 1,
+                delay: 0.7, 
+            });
+            gsap.from(".home-feature .col-xl-3", {
+                y: 50,
+                opacity: 0,
+                duration: 1,
+                stagger: 0.2,
+                scrollTrigger: {
+                    trigger: '.home-feature .col-xl-3',
+                    start: 'top 60%',
+                    end: 'bottom 20%',
+                }
+            });
+            gsap.from(".home-how-to .step#step-1", {
+                x: -50,
+                opacity: 0,
+                duration: 1,
+                scrollTrigger: {
+                    trigger: '.home-how-to',
+                    start: 'top 60%',
+                    end: 'bottom 80%',
+                }
+            });
+            gsap.from(".home-how-to .step#step-1 .step-icon", {
+                x: 20,
+                rotate: 360,
+                opacity: 0,
+                duration: 1.5,
+                scrollTrigger: {
+                    trigger: '.home-how-to',
+                    start: 'top 60%',
+                    end: 'bottom 80%',
+                }
+            });
+            gsap.from(".home-how-to .step#step-2", {
+                x: 50,
+                opacity: 0,
+                duration: 1,
+                scrollTrigger: {
+                    trigger: '.home-how-to #step-1',
+                    start: 'top 65%',
+                    end: 'bottom 80%',
+                }
+            });
+            gsap.from(".home-how-to .step#step-2 .step-icon", {
+                x: -20,
+                rotate: -360,
+                opacity: 0,
+                duration: 1.5,
+                scrollTrigger: {
+                    trigger: '.home-how-to #step-1',
+                    start: 'top 65%',
+                    end: 'bottom 80%',
+                }
+            });
+            gsap.from(".home-how-to .step#step-3", {
+                x: -50,
+                opacity: 0,
+                duration: 1,
+                scrollTrigger: {
+                    trigger: '.home-how-to #step-2',
+                    start: 'top 70%',
+                    end: 'bottom 80%',
+                }
+            });
+            gsap.from(".home-how-to .step#step-3 .step-icon", {
+                x: 20,
+                rotate: 360,
+                opacity: 0,
+                duration: 1.5,
+                scrollTrigger: {
+                    trigger: '.home-how-to #step-2',
+                    start: 'top 70%',
+                    end: 'bottom 80%',
+                }
+            });
+        }
+    }, [loading])
 
     return (
         <>
